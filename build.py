@@ -24,7 +24,7 @@ Each section records its own "updated" timestamp and status, so a source that
 fails (e.g. an expired abuse.ch key) is shown as stale instead of silently
 breaking the whole page.
 """
-import os, sys, json, html, datetime, re
+import os, sys, json, html, datetime, re, time
 
 try:
     import requests
@@ -91,19 +91,29 @@ ICS_PROTOCOLS = [
 # Fetch helpers (live mode)
 # =============================================================================
 def _get_json(url, **kw):
-    r = requests.get(url, headers=UA, timeout=30, **kw)
+    kw.setdefault("headers", UA)   # don't clobber a caller-supplied headers=
+    kw.setdefault("timeout", 30)
+    r = requests.get(url, **kw)
     r.raise_for_status()
     return r.json()
+
+def _fetch_feed(url):
+    """Fetch an RSS/Atom feed with our own user-agent, then parse the bytes.
+    More robust than feedparser's built-in HTTP, which some sites (CISA) block."""
+    r = requests.get(url, headers=UA, timeout=30)
+    r.raise_for_status()
+    return feedparser.parse(r.content)
 
 def fetch_cisa_ics(limit=12):
     """CISA ICS advisories via RSS. Tries the ICS feed, falls back to all-advisories filtered."""
     feeds = [
         "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml",
         "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+        "https://us-cert.cisa.gov/ics/advisories/advisories.xml",
     ]
     for fu in feeds:
         try:
-            d = feedparser.parse(fu)
+            d = _fetch_feed(fu)
             items = []
             for e in d.entries:
                 title = e.get("title", "")
@@ -132,7 +142,12 @@ def fetch_nvd_ics(limit=12, days=21):
     start = (NOW - datetime.timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S.000")
     end = NOW.strftime("%Y-%m-%dT%H:%M:%S.000")
     out = []
-    for kw in ("Siemens", "Schneider Electric", "Rockwell", "Moxa"):
+    # NVD throttles unauthenticated clients to ~5 requests / 30s, so space them out.
+    gap = 2 if key else 6
+    vendors = ("Siemens", "Schneider Electric", "Rockwell", "Moxa")
+    for idx, kw in enumerate(vendors):
+        if idx:
+            time.sleep(gap)
         try:
             data = _get_json(
                 "https://services.nvd.nist.gov/rest/json/cves/2.0",
@@ -198,7 +213,7 @@ def fetch_news(limit=8):
     out = []
     for fu in feeds:
         try:
-            d = feedparser.parse(fu)
+            d = _fetch_feed(fu)
             for e in d.entries[:6]:
                 out.append({"title": e.get("title", "").strip(),
                             "link": e.get("link", ""),
