@@ -126,33 +126,46 @@ def _fetch_feed(url):
     return feedparser.parse(r.content)
 
 def fetch_cisa_ics(limit=12):
-    """CISA ICS advisories via RSS. Tries the ICS feed, falls back to all-advisories filtered."""
-    feeds = [
-        "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml",
-        "https://www.cisa.gov/cybersecurity-advisories/all.xml",
-        "https://us-cert.cisa.gov/ics/advisories/advisories.xml",
-    ]
-    for fu in feeds:
-        try:
-            d = _fetch_feed(fu)
-            items = []
-            for e in d.entries:
-                title = e.get("title", "")
-                if "ics-advisories" not in fu and "ICS" not in title and "Industrial" not in title:
-                    continue
-                items.append({
-                    "title": title.strip(),
-                    "link": e.get("link", ""),
-                    "date": _fmt_entry_date(e),
-                    "vendor": _guess_vendor(title),
-                })
-                if len(items) >= limit:
-                    break
-            if items:
-                return items, "live"
-        except Exception as ex:
-            print(f"  CISA feed error ({fu}): {ex}", file=sys.stderr)
-    return [], "error"
+    """CISA ICS advisories.
+
+    CISA's own site (cisa.gov) blocks automated clients (HTTP 403), so instead
+    of scraping it we read the ICS Advisory Project's maintained dataset on
+    GitHub — a community mirror of every CISA ICS advisory, refreshed regularly.
+    GitHub is reliably reachable from CI, so this stays green. Each row still
+    links back to the official CISA advisory page for a human to open."""
+    import csv as _csv, io as _io
+    url = ("https://raw.githubusercontent.com/icsadvprj/ICS-Advisory-Project/"
+           "main/ICS-CERT_ADV/CISA_ICS_ADV_Master.csv")
+    try:
+        r = requests.get(url, headers=UA, timeout=45)
+        r.raise_for_status()
+        rows = list(_csv.DictReader(_io.StringIO(r.text)))
+        def pdate(s):
+            for f in ("%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y"):
+                try:
+                    return datetime.datetime.strptime((s or "").strip(), f)
+                except Exception:
+                    pass
+            return None
+        dated = [(pdate(x.get("Original_Release_Date", "")), x) for x in rows]
+        dated = [t for t in dated if t[0]]
+        dated.sort(key=lambda t: t[0], reverse=True)
+        out = []
+        for dt, x in dated[:limit]:
+            num = (x.get("ICS-CERT_Number") or "").strip()
+            title = (x.get("ICS-CERT_Advisory_Title") or "").strip()
+            if not title:
+                continue
+            link = ("https://www.cisa.gov/news-events/ics-advisories/" + num
+                    if num.upper().startswith("ICSA")
+                    else "https://www.cisa.gov/news-events/cybersecurity-advisories")
+            out.append({"title": title, "link": link,
+                        "date": dt.strftime("%b %d, %Y"),
+                        "vendor": (x.get("Vendor") or "").strip()})
+        return (out, "live") if out else ([], "error")
+    except Exception as ex:
+        print(f"  CISA (ICS Advisory Project) error: {ex}", file=sys.stderr)
+        return [], "error"
 
 def fetch_nvd_ics(limit=12, days=45):
     """Recent CVEs mentioning ICS vendors, via NVD 2.0 API (keyword search)."""
@@ -288,7 +301,7 @@ def gather():
     data = {"generated": NOW.strftime("%b %d, %Y %H:%M UTC"), "sections": {}}
 
     def section(name, live_fn, seed_key):
-        if OFFLINE or requests is None or feedparser is None:
+        if OFFLINE or requests is None:  # feedparser only needed for RSS; those fetchers degrade on their own
             return {"items": seed.get(seed_key, []), "status": "seed",
                     "updated": seed.get("_seed_date", "sample")}
         print(f"Fetching {name} ...", file=sys.stderr)
@@ -542,7 +555,7 @@ footer .note{margin-top:8px;color:var(--muted)}
   <div class="grid">{{CARDS}}</div>
   <footer>
     <b>OT Threat Radar</b> — a static dashboard rebuilt on a schedule from free public sources:
-    CISA ICS Advisories, NVD, abuse.ch ThreatFox, and public security RSS. Reference sections are curated.
+    CISA ICS Advisories (via the ICS Advisory Project), NVD, abuse.ch ThreatFox, and public security RSS. Reference sections are curated.
     For defensive, educational use. Verify every indicator against its primary source before acting.
     <div class="note">Sources update independently; a card marked ▲ STALE or ◆ SAMPLE means that feed
     hasn't refreshed (often a missing API key) — the rest of the page is still current.</div>
