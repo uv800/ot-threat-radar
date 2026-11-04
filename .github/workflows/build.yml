@@ -1,0 +1,58 @@
+name: Build OT Threat Radar
+
+# Rebuilds the dashboard on a schedule and publishes it to GitHub Pages.
+on:
+  schedule:
+    - cron: "0 6 * * *"      # daily at 06:00 UTC (~11:30 IST). Edit to taste.
+  workflow_dispatch: {}       # lets you run it manually from the Actions tab
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build dashboard (live fetch)
+        env:
+          # Optional — add these as repo secrets to enable the gated sources.
+          # Settings -> Secrets and variables -> Actions -> New repository secret
+          ABUSE_CH_API_KEY: ${{ secrets.ABUSE_CH_API_KEY }}
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: python build.py
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,22 @@
+{
+  "_seed_date": "sample data",
+  "_note": "These are realistic placeholder entries so the page is never empty before the first scheduled run. The GitHub Action replaces each live section with fresh data.",
+  "cisa": [
+    {"title": "Siemens SIMATIC S7-1500 CPU Denial-of-Service", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Siemens"},
+    {"title": "Schneider Electric EcoStruxure Power Monitoring Expert", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Schneider Electric"},
+    {"title": "Rockwell Automation FactoryTalk View SE Remote Code Execution", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Rockwell"},
+    {"title": "Moxa NPort Device Server Authentication Bypass", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Moxa"},
+    {"title": "Mitsubishi Electric MELSEC iQ-R Series Improper Validation", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Mitsubishi Electric"},
+    {"title": "Hitachi Energy RTU500 Series Vulnerability", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "date": "sample", "vendor": "Hitachi Energy"}
+  ],
+  "cves": [
+    {"id": "CVE-2026-SAMPLE1", "desc": "Sample: unauthenticated command injection in an industrial gateway web interface.", "score": 9.8, "severity": "CRITICAL", "vendor": "Siemens", "link": "https://nvd.nist.gov/"},
+    {"id": "CVE-2026-SAMPLE2", "desc": "Sample: improper access control allows PLC program download without authentication.", "score": 8.6, "severity": "HIGH", "vendor": "Schneider Electric", "link": "https://nvd.nist.gov/"},
+    {"id": "CVE-2026-SAMPLE3", "desc": "Sample: stack overflow in an SCADA historian service reachable over the network.", "score": 7.5, "severity": "HIGH", "vendor": "Rockwell", "link": "https://nvd.nist.gov/"},
+    {"id": "CVE-2026-SAMPLE4", "desc": "Sample: hardcoded credentials in a serial device server.", "score": 6.5, "severity": "MEDIUM", "vendor": "Moxa", "link": "https://nvd.nist.gov/"}
+  ],
+  "iocs": [],
+  "news": [
+    {"title": "Sample headline — connect feeds to see live OT/ICS security news here.", "link": "https://www.cisa.gov/news-events/cybersecurity-advisories", "src": "cisa.gov", "date": "sample"}
+  ]
+}
