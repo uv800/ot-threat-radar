@@ -37,13 +37,7 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OFFLINE = "--offline" in sys.argv
-# A realistic browser UA — CISA (and some other sources) return 403 to obvious
-# script user-agents. This is a read-only fetch of public feeds.
-UA = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json;q=0.9, */*;q=0.8",
-}
+UA = {"User-Agent": "ot-threat-radar/1.0 (+https://github.com/YOUR_USERNAME/ot-threat-radar)"}
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
 # ---- OT / ICS scope ---------------------------------------------------------
@@ -139,7 +133,7 @@ def fetch_cisa_ics(limit=12):
             print(f"  CISA feed error ({fu}): {ex}", file=sys.stderr)
     return [], "error"
 
-def fetch_nvd_ics(limit=12, days=45):
+def fetch_nvd_ics(limit=12, days=21):
     """Recent CVEs mentioning ICS vendors, via NVD 2.0 API (keyword search)."""
     key = os.environ.get("NVD_API_KEY")
     hdr = dict(UA)
@@ -395,32 +389,32 @@ PAGE = r"""<!doctype html>
 <meta name="description" content="Scheduled OT/ICS threat-intelligence dashboard — CISA ICS advisories, industrial-vendor CVEs, OT-tagged IOCs, and an industrial-malware reference.">
 <style>
 :root{
-  --fire:linear-gradient(135deg,#6FFBDC 0%,#2FE6B0 50%,#13B89A 100%);
-  --fire-x:linear-gradient(90deg,#6FFBDC 0%,#2FE6B0 50%,#13B89A 100%);
-  --cyan:#3DE6C8; --lapis:#0E3A38; --lapis-text:#86ECD4;
-  --red:#FF5A6E; --warn:#F2A740; --ok:#2FE6B0;
-  --ink:#E6EDF3; --ground:#060B11; --panel:#0C131B; --panel-2:#111B24;
-  --muted:#8695A3; --line:#1A2832;
+  --fire:linear-gradient(180deg,#FFE44D 0%,#FFB21C 32%,#FF7A1F 60%,#FF3B2F 84%,#E0261B 100%);
+  --fire-x:linear-gradient(90deg,#FFE44D 0%,#FFB21C 30%,#FF7A1F 58%,#FF3B2F 82%,#E0261B 100%);
+  --cyan:#3DE0FF; --lapis:#15317E; --lapis-text:#8FA8FF;
+  --red:#FF2D3D; --warn:#FF9A3C; --ok:#35C08A;
+  --ink:#ECE8DA; --ground:#06080E; --panel:#0C101A; --panel-2:#111623;
+  --muted:#8A90A4; --line:#1C2334;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --display:"Arial Black",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:radial-gradient(900px 500px at 0% 0%,rgba(19,184,154,.16),transparent 70%),radial-gradient(700px 520px at 100% 100%,rgba(47,230,176,.06),transparent 70%),var(--ground);color:var(--ink);font:15px/1.55 var(--sans)}
+body{background:radial-gradient(900px 500px at 0% 0%,rgba(21,49,126,.35),transparent 70%),radial-gradient(700px 500px at 100% 100%,rgba(61,224,255,.06),transparent 70%),var(--ground);color:var(--ink);font:15px/1.55 var(--sans)}
 a{color:var(--lapis-text);text-decoration:none}
 a:hover{color:var(--cyan)}
 .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
 .brand{display:flex;align-items:center;gap:13px}
-.mark{width:42px;height:42px;border-radius:11px;background:var(--fire);display:grid;place-items:center;color:#042019;box-shadow:0 0 24px -4px rgba(47,230,176,.5)}
+.mark{width:42px;height:42px;border-radius:11px;background:var(--fire);display:grid;place-items:center;color:#0A0A0A;box-shadow:0 0 22px -4px rgba(255,120,30,.6)}
 .brand h1{margin:0;font:900 27px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;background:var(--fire);-webkit-background-clip:text;background-clip:text;color:transparent}
 .brand small{display:block;font:500 11px/1.3 var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
 .gen{font:500 12px/1.4 var(--mono);color:var(--muted);text-align:right}
 .gen b{color:var(--cyan)}
-.ticker{margin:16px 0 22px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(90deg,rgba(47,230,176,.08),transparent 60%);padding:11px 14px;font:600 11px/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:22px;flex-wrap:wrap}
+.ticker{margin:16px 0 22px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(90deg,rgba(255,45,61,.08),transparent 60%);padding:11px 14px;font:600 11px/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:22px;flex-wrap:wrap}
 .ticker b{color:var(--ink)}
-.ticker .live::before{content:"● ";color:var(--ok)}
+.ticker .live::before{content:"● ";color:var(--red)}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px 16px 10px;overflow:hidden}
 .card.wide{grid-column:1 / -1}
